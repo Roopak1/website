@@ -43,7 +43,7 @@
 		mobileBreakpointPx: 520,
 		mobileOverrides: {
 
-            spawnEveryMs: 300,
+            spawnEveryMs: 200,
 			// Typography
 			fontSizePx: 30,
 			postMessageFontSizePx: 20,
@@ -53,8 +53,8 @@
 			postMessageFadeMs: 4500,
 			postMessageStaggerMs: 2200,
 			// Spawn caps
-			spawnLimit: 120,
-			maxWords: 120,
+			spawnLimit: 100,
+			maxWords: 100,
 			// Blast realism
 			blastStrength: 15,
 			blastSpin: 1.2,
@@ -602,4 +602,5 @@
 		if (!spawnTimer) startSpawning();
 	});
 })();
+
 
