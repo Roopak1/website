@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Falling Words Physics</title>
+		<link rel="stylesheet" href="style.css" />
+		<!-- Matter.js for simple rigid-body physics -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
+	</head>
+	<body>
+		<div id="scene" aria-label="Falling words scene"></div>
+
+		<!-- Start overlay -->
+		<div id="overlay" class="overlay" aria-live="polite">
+			<div class="panel">
+				<h1>Falling Words</h1>
+				<button id="startBtn" class="btn">Start</button>
+				<p class="hint">Tip: edit settings in <code>script.js</code> (CONFIG) to change size, speed, rotation, etc.</p>
+			</div>
+		</div>
+
+		<script src="script.js"></script>
+	</body>
+	</html>
