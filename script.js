@@ -11,7 +11,7 @@
 	        'baby','love','mine','darling'
 		],
 		initialBurst: 1,     // how many words to drop at start
-		spawnEveryMs: 0 ,   // interval between drops
+		spawnEveryMs: 150 ,   // interval between drops
 		spawnLimit: 130,     // total number of words to spawn (includes initialBurst). Set to null for unlimited
 		maxWords: 130,       // optional cap kept for safety
 		spawnHorizontalSpread: 1, // % of screen width used for random x offset around center (1.0 = full width)
@@ -56,7 +56,7 @@
 		mobileBreakpointPx: 520,
 		mobileOverrides: {
 
-            spawnEveryMs: 0,
+            spawnEveryMs: 150,
 			// Typography
 			fontSizePx: 30,
 			postMessageFontSizePx: 20,
@@ -738,4 +738,5 @@
 		if (!spawnTimer) startSpawning();
 	});
 })();
+
 
