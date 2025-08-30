@@ -11,7 +11,7 @@
 	        'baby','love','mine','darling'
 		],
 		initialBurst: 1,     // how many words to drop at start
-		spawnEveryMs: 150 ,   // interval between drops
+		spawnEveryMs: 0 ,   // interval between drops
 		spawnLimit: 130,     // total number of words to spawn (includes initialBurst). Set to null for unlimited
 		maxWords: 130,       // optional cap kept for safety
 		spawnHorizontalSpread: 1, // % of screen width used for random x offset around center (1.0 = full width)
@@ -28,33 +28,46 @@
 		redTransitionMs: 1000,
 
 		// Post-blast message timings and content
-		postMessageDelayMs: 10000,   // delay after blast before showing the first line
-		postMessageFadeMs: 6000,     // fade-in duration for each line
+		postMessageDelayMs: 5000,   // delay after blast before showing the first line
+		postMessageFadeMs: 4500,     // fade-in duration for each line
 		postMessageStaggerMs: 3000,  // wait between lines
 		postMessageLineGapPx: 50,   // vertical gap between lines
 		postMessageFontSizePx: 50, // override font size for the post-blast lines (defaults to word size)
 		postMessages: [
 			"No words are enough for you ❤️",
-			"You're my favorite person in this universe 🌌",
+			"You're my favorite person in this universe",
 			"Happy Birthday, my love 💫"
 		],
+
+		// Emoji sprinkle settings (spawned behind final message)
+		emojiSprinkle: {
+			emojis: ["❤️"],
+			fontSize: 20,              // px
+			spawnInterval: 0,        // ms between spawns
+			spawnLimit: 500,            // max emojis
+			distanceRange: [30, 40],   // min/max spacing between emojis in px
+			offsetRange: [-60, 60],     // allowed offset around message box
+			noSpawnPadPx: 10,        // explicit padding around message (overrides offsetRange magnitude if set)
+			spawnSlowdownMsPerSpawn: .1,// how much to increase interval after each spawn (0 = constant rate)
+			gridCellScale: 2,          // grid cell = fontSize * scale (default 2x font)
+		},
 
 		///////// Mobile-specific overrides (applied when on a phone-sized viewport)
 		mobileBreakpointPx: 520,
 		mobileOverrides: {
 
-            spawnEveryMs: 200,
+            spawnEveryMs: 0,
 			// Typography
 			fontSizePx: 30,
 			postMessageFontSizePx: 20,
 			postMessageLineGapPx: 36,
 			// Post-blast timings
-			postMessageDelayMs: 8000,
+			postMessageDelayMs: 5000,
 			postMessageFadeMs: 4500,
 			postMessageStaggerMs: 2200,
 			// Spawn caps
-			spawnLimit: 100,
-			maxWords: 100,
+			spawnLimit: 120,
+			maxWords: 120,
 			// Blast realism
 			blastStrength: 15,
 			blastSpin: 1.2,
@@ -68,11 +81,11 @@
 		// Sounds
 		soundPopSrc: 'sounds/pop.mp3',
 		soundPianoSrc: 'sounds/piano.wav',
-		soundPopVolume: 0.6,
-		soundPianoVolume: 0.25,
+		soundPopVolume: 1,
+		soundPianoVolume: 0.8,
 		soundPianoLoop: true,
 		soundPianoDelayMs: 600, // when to start piano after blast
-		soundPopPreMs: 300,     // play pop this many ms before the blast
+		soundPopPreMs: 500,     // play pop this many ms before the blast
 
 		// Blast realism settings
 		blastStrength: 40,      // base outward speed imparted (px/tick)
@@ -128,6 +141,7 @@
 			sndPiano.volume = CONFIG.soundPianoVolume ?? 0.25;
 		} catch {}
 	}
+
 
 	// Create physics engine (no built-in canvas render; we sync DOM manually)
 	const engine = Engine.create();
@@ -318,12 +332,12 @@
 		}, Math.max(150, dur || 400));
 		el.style.cursor = 'pointer';
 		el.title = 'Click to blast';
-		el.classList.add('glow');
+		el.classList.add('glow-pop');
 		const onClick = () => {
 			clearInterval(blinkInterval);
 			el.removeEventListener('click', onClick);
 			el.style.cursor = '';
-			el.classList.remove('glow');
+			el.classList.remove('glow-pop');
 			el.style.opacity = '1';
 			// Now turn red, then blast after the color transition
 			const trans = `color ${dur}ms ease`;
@@ -572,8 +586,12 @@
 			const start = () => {
 				line.style.opacity = '1';
 				line.style.transform = 'translateY(0)';
-				// Add a gentle blinking glow once visible
-				line.classList.add('glow');
+				// All lines get the same premium glow
+				line.classList.add('post-glow');
+				// If this is the last line and it's now visible, start emoji sprinkle behind the box
+				if (i === lines.length - 1) {
+					startEmojiSprinkle(overlay, box);
+				}
 			};
 			const delay = i * staggerMs;
 			setTimeout(() => {
@@ -585,6 +603,124 @@
 				}
 			}, delay);
 		});
+	}
+
+	// ---------------- Emoji Sprinkle ----------------
+	function startEmojiSprinkle(overlay, box) {
+		const cfg = CONFIG.emojiSprinkle || {};
+		const emojis = Array.isArray(cfg.emojis) && cfg.emojis.length ? cfg.emojis : ["❤️", "✨", "🌸"];
+		const fontSize = Math.max(8, cfg.fontSize ?? 24);
+		const spawnInterval = Math.max(60, cfg.spawnInterval ?? 800);
+		const distMin = Math.max(0, (cfg.distanceRange?.[0] ?? 10));
+		const distMax = Math.max(distMin, (cfg.distanceRange?.[1] ?? 20));
+		const offMin = cfg.offsetRange?.[0] ?? -40;
+		const offMax = cfg.offsetRange?.[1] ?? 40;
+
+		// Expand the no-spawn zone: explicit noSpawnPadPx overrides offsetRange magnitude
+		const noSpawnPad = Math.max(8, (cfg.noSpawnPadPx != null ? Number(cfg.noSpawnPadPx) : Math.max(Math.abs(offMin), Math.abs(offMax))));
+
+		// Create or reuse the emoji layer behind text
+		let layer = overlay.querySelector('.emoji-layer');
+		if (!layer) {
+			layer = document.createElement('div');
+			layer.className = 'emoji-layer';
+			overlay.appendChild(layer);
+		}
+
+		// Track placed emoji positions for spacing
+		const placed = [];
+
+		// Compute the no-spawn zone from the message box bounding rect
+		function getNoSpawnRect() {
+			const r = box.getBoundingClientRect();
+			return { x: r.left, y: r.top, w: r.width, h: r.height };
+		}
+
+		function isInsideNoSpawn(x, y) {
+			const ns = getNoSpawnRect();
+			return x >= ns.x - noSpawnPad && x <= ns.x + ns.w + noSpawnPad && y >= ns.y - noSpawnPad && y <= ns.y + ns.h + noSpawnPad;
+		}
+
+		function farFromOthers(x, y, requiredMin) {
+			if (!placed.length) return true;
+			for (const p of placed) {
+				const d = Math.hypot(x - p.x, y - p.y);
+				if (d < Math.max(requiredMin, p.minDist)) return false;
+			}
+			return true;
+		}
+
+		// Build grid intersection points dynamically based on screen size and target spacing
+		function buildGridPoints() {
+			const sceneRect = overlay.getBoundingClientRect();
+			const width = sceneRect.width;
+			const height = sceneRect.height;
+			// Grid cell size = fontSize * scale (configurable), fallback to spacing midpoint
+			const scale = Math.max(0.5, cfg.gridCellScale ?? 2);
+			const cell = Math.max(6, fontSize * scale, (distMin + distMax) / 2);
+			const cols = Math.max(2, Math.floor(width / cell));
+			const rows = Math.max(2, Math.floor(height / cell));
+			const stepX = cols > 0 ? width / cols : width;
+			const stepY = rows > 0 ? height / rows : height;
+			// Padding from edges so emoji is fully visible (approx half glyph size)
+			const edgePad = Math.ceil(fontSize * 0.6);
+			const pts = [];
+			for (let i = 0; i <= cols; i++) {
+				for (let j = 0; j <= rows; j++) {
+					const px = sceneRect.left + i * stepX;
+					const py = sceneRect.top + j * stepY;
+					// Exclude intersections near edges which would clip the emoji
+					if (px < sceneRect.left + edgePad || px > sceneRect.right - edgePad || py < sceneRect.top + edgePad || py > sceneRect.bottom - edgePad) {
+						continue;
+					}
+					// Skip the no-spawn zone around the message
+					if (isInsideNoSpawn(px, py)) continue;
+					pts.push({
+						pageX: px,
+						pageY: py,
+						x: px - sceneRect.left,
+						y: py - sceneRect.top
+					});
+				}
+			}
+			// Shuffle for random spawn order on the grid
+			for (let k = pts.length - 1; k > 0; k--) {
+				const r = Math.floor(Math.random() * (k + 1));
+				[pts[k], pts[r]] = [pts[r], pts[k]];
+			}
+			return pts;
+		}
+
+		function spawnEmojiAt(x, y, minDist) {
+			const span = document.createElement('span');
+			span.className = 'emoji';
+			span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+			span.style.fontSize = `${fontSize}px`;
+			span.style.left = `${x}px`;
+			span.style.top = `${y}px`;
+			layer.appendChild(span);
+			// Animate in
+			requestAnimationFrame(() => span.classList.add('in'));
+			// Track
+			const sceneRect = overlay.getBoundingClientRect();
+			placed.push({ x: sceneRect.left + x, y: sceneRect.top + y, minDist });
+		}
+
+		const points = buildGridPoints();
+		let idx = 0;
+		let currentInterval = spawnInterval;
+		const slowdown = Math.max(0, cfg.spawnSlowdownMsPerSpawn ?? 0);
+		function step() {
+			// Spawn until we've filled all eligible intersections
+			if (idx >= points.length) return;
+			const p = points[idx++];
+			// Track and spawn at this intersection
+			placed.push({ x: p.pageX, y: p.pageY, minDist: (distMin + distMax) / 2 });
+			spawnEmojiAt(p.x, p.y, (distMin + distMax) / 2);
+			currentInterval += slowdown;
+			setTimeout(step, currentInterval);
+		}
+		setTimeout(step, currentInterval);
 	}
 
 	// Run the engine (paused until user starts spawning)
@@ -602,5 +738,4 @@
 		if (!spawnTimer) startSpawning();
 	});
 })();
-
 
