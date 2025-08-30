@@ -1,7 +1,8 @@
 :root {
-	--bg: #0f172a; /* slate-900 */
-	--fg: #e2e8f0; /* slate-200 */
-	--accent: #60a5fa; /* blue-400 */
+	/* Romantic palette */
+	--bg: #1a0f1f;      /* deep plum */
+	--fg: #ffeaf2;      /* soft rose white */
+	--accent: #f472b6;  /* pink-400 */
 }
 
 * {
@@ -14,7 +15,7 @@ html, body {
 }
 
 body {
-	background: radial-gradient(1200px 800px at 70% 10%, #111827 0%, var(--bg) 60%);
+	background: radial-gradient(1200px 800px at 70% 10%, #2a1630 0%, var(--bg) 60%);
 	color: var(--fg);
 	font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
 	overflow: hidden;
@@ -81,7 +82,7 @@ body {
 	border: none;
 	padding: 10px 16px;
 	border-radius: 10px;
-	background: linear-gradient(180deg, #60a5fa, #3b82f6);
+	background: linear-gradient(180deg, #f472b6, #ec4899);
 	color: white;
 	font-weight: 700;
 	cursor: pointer;
@@ -104,7 +105,7 @@ body {
 	width: 12px;
 	height: 12px;
 	border-radius: 9999px;
-	border: 2px solid rgba(255, 80, 80, 0.9);
+	border: 2px solid rgba(244, 114, 182, 0.9);
 	transform: translate(-50%, -50%) scale(0);
 	opacity: 0.8;
 	pointer-events: none;
@@ -115,9 +116,22 @@ body {
 	text-shadow:
 		0 0 10px rgba(255, 255, 255, 0.68),
 		0 0 20px rgba(255, 255, 255, 0.44),
-		0 0 40px rgba(96, 165, 250, 0.24);
+		0 0 40px rgba(244, 114, 182, 0.26);
 	animation: glowPulse 1300ms ease-in-out infinite;
 }
+
+/* Enhanced glow for the clickable word (pre-blast) */
+.glow-pop {
+	/* Layered soft halo */
+	text-shadow:
+		0 0 6px rgba(255, 255, 255, 0.75),
+		0 0 12px rgba(255, 255, 255, 0.55),
+		0 0 22px rgba(244, 114, 182, 0.45),
+		0 0 38px rgba(244, 114, 182, 0.35),
+		0 0 64px rgba(244, 114, 182, 0.25);
+    /* No animation: it will naturally sync with JS opacity blinking */
+}
+
 
 @keyframes glowPulse {
 	/* Heartbeat: quick strong pulse, brief drop, smaller pulse, then rest */
@@ -125,31 +139,31 @@ body {
 		text-shadow:
 			0 0 8px rgba(255, 255, 255, 0.60),
 			0 0 16px rgba(255, 255, 255, 0.36),
-			0 0 28px rgba(96, 165, 250, 0.20);
+			0 0 28px rgba(244, 114, 182, 0.22);
 	}
 	10% {
 		text-shadow:
 			0 0 14px rgba(255, 255, 255, 0.76),
 			0 0 30px rgba(255, 255, 255, 0.52),
-			0 0 56px rgba(96, 165, 250, 0.32);
+			0 0 56px rgba(244, 114, 182, 0.34);
 	}
 	14% {
 		text-shadow:
 			0 0 10px rgba(255, 255, 255, 0.64),
 			0 0 20px rgba(255, 255, 255, 0.40),
-			0 0 40px rgba(96, 165, 250, 0.24);
+			0 0 40px rgba(244, 114, 182, 0.26);
 	}
 	20% {
 		text-shadow:
 			0 0 12px rgba(255, 255, 255, 0.70),
 			0 0 24px rgba(255, 255, 255, 0.46),
-			0 0 48px rgba(96, 165, 250, 0.28);
+			0 0 48px rgba(244, 114, 182, 0.30);
 	}
 	28% {
 		text-shadow:
 			0 0 8px rgba(255, 255, 255, 0.60),
 			0 0 16px rgba(255, 255, 255, 0.36),
-			0 0 28px rgba(96, 165, 250, 0.20);
+			0 0 28px rgba(244, 114, 182, 0.22);
 	}
 }
 .shockwave.go {
@@ -187,10 +201,50 @@ body {
 .post-box {
 	text-align: center;
 	color: var(--fg);
+	position: relative; /* create stacking context above emoji layer */
+	z-index: 1;
 }
 .post-line {
 	opacity: 0;
 	transform: translateY(8px);
+	/* Help the browser optimize the fade/slide */
+	will-change: opacity, transform;
+	contain: paint;
+}
+
+/* High-quality glow for the final message line */
+.post-glow {
+	/* Multi-layer, soft halo tuned for readability */
+	text-shadow:
+		0 0 2px rgba(255,255,255,0.45),
+		0 0 6px rgba(255,255,255,0.35),
+		0 0 14px rgba(244,114,182,0.30),
+		0 0 28px rgba(244,114,182,0.24),
+		0 0 46px rgba(244,114,182,0.18),
+		0 0 72px rgba(244,114,182,0.14);
+	/* No animation to keep fades smooth and light */
+}
+
+/* Emoji sprinkle layer sits behind the message text */
+.emoji-layer {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+}
+.emoji {
+	position: absolute;
+	left: 0;
+	top: 0;
+	transform: translate(-50%, -50%) scale(0.7);
+	opacity: 0;
+	filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15));
+	transition: transform 420ms ease, opacity 420ms ease;
+	will-change: transform, opacity;
+}
+.emoji.in {
+	transform: translate(-50%, -50%) scale(1);
+	opacity: 0.95;
 }
 
 /* Disable text selection and tap highlight on words */
